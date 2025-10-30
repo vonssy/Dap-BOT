@@ -9,26 +9,21 @@ from fake_useragent import FakeUserAgent
 from nacl.signing import SigningKey
 from base58 import b58decode, b58encode
 from base64 import b64encode
-from dotenv import load_dotenv
 from datetime import datetime
 from colorama import *
-import asyncio, random, json, re, os, pytz
-
-load_dotenv()
+import asyncio, json, re, os, pytz
 
 wib = pytz.timezone('Asia/Jakarta')
 
 class DAP:
     def __init__(self) -> None:
-        self.BASE_API = "https://api.dapcoin.xyz/api"
+        self.BASE_API = "https://gateway.dapcoin.xyz/api"
         self.REF_CDOE = "X9Y5S0VQ" # U can change it with yours
         self.HEADERS = {}
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
         self.access_tokens = {}
-        self.min_score = int(os.getenv("MIN_SCORE").strip())
-        self.max_score = int(os.getenv("MAX_SCORE").strip())
 
     def clear_terminal(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -339,66 +334,6 @@ class DAP:
 
         return None
     
-    async def start_game(self, address: str, proxy_url=None, retries=5):
-        url = f"{self.BASE_API}/games/dc591e39-8abf-42f3-880d-02de96cb71d9/start"
-        headers = {
-            **self.HEADERS[address],
-            "Authorization": f"Bearer {self.access_tokens[address]}",
-            "Content-Length": "0",
-        }
-        for attempt in range(retries):
-            connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
-            try:
-                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
-                    async with session.post(url=url, headers=headers, proxy=proxy, proxy_auth=proxy_auth) as response:
-                        print(f"{response.status}:{await response.text()}")
-                        response.raise_for_status()
-                        return await response.json()
-            except (Exception, ClientResponseError) as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(5)
-                    continue
-                self.log(
-                    f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT}Start  :{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
-                )
-
-        return None
-    
-    async def complete_game(self, address: str, game_id: str, score: int, proxy_url=None, retries=5):
-        url = f"{self.BASE_API}/games/dc591e39-8abf-42f3-880d-02de96cb71d9/complete"
-        data = json.dumps({"id": game_id, "score": score})
-        headers = {
-            **self.HEADERS[address],
-            "Authorization": f"Bearer {self.access_tokens[address]}",
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json",
-        }
-        for attempt in range(retries):
-            connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
-            try:
-                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
-                    async with session.post(url=url, headers=headers, data=data, proxy=proxy, proxy_auth=proxy_auth) as response:
-                        print(f"{response.status}:{await response.text()}")
-                        response.raise_for_status()
-                        return await response.json()
-            except (Exception, ClientResponseError) as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(5)
-                    continue
-                self.log(
-                    f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT}Finish :{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
-                )
-
-        return None
-    
     async def task_lists(self, address: str, proxy_url=None, retries=5):
         url = f"{self.BASE_API}/tasks"
         headers = {
@@ -535,55 +470,6 @@ class DAP:
                         f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
                     )
 
-            # remaining_trials = user.get("tickets", 0)
-            # if remaining_trials > 0:
-            #     self.log(f"{Fore.CYAN+Style.BRIGHT}Games   :{Style.RESET_ALL}")
-
-            #     for i in range(remaining_trials):
-            #         self.log(
-            #             f"{Fore.GREEN+Style.BRIGHT} ● {Style.RESET_ALL}"
-            #             f"{Fore.WHITE+Style.BRIGHT}{i+1} Of {remaining_trials}{Style.RESET_ALL}"
-            #         )
-
-            #         start = await self.start_game(address, proxy)
-            #         if not start: continue
-
-            #         game_id = start.get("game", {}).get("id")
-
-            #         self.log(
-            #             f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-            #             f"{Fore.BLUE+Style.BRIGHT}Start  :{Style.RESET_ALL}"
-            #             f"{Fore.GREEN+Style.BRIGHT} Success {Style.RESET_ALL}"
-            #         )
-            #         self.log(
-            #             f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-            #             f"{Fore.BLUE+Style.BRIGHT}Game Id:{Style.RESET_ALL}"
-            #             f"{Fore.WHITE+Style.BRIGHT} {game_id} {Style.RESET_ALL}"
-            #         )
-
-            #         score = random.randint(self.min_score, self.max_score)
-
-            #         complete = await self.complete_game(address, game_id, score, proxy)
-            #         if not complete: continue
-
-            #         self.log(
-            #             f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-            #             f"{Fore.BLUE+Style.BRIGHT}Finish :{Style.RESET_ALL}"
-            #             f"{Fore.GREEN+Style.BRIGHT} Success {Style.RESET_ALL}"
-            #         )
-            #         self.log(
-            #             f"{Fore.MAGENTA+Style.BRIGHT}     > {Style.RESET_ALL}"
-            #             f"{Fore.BLUE+Style.BRIGHT}Score  :{Style.RESET_ALL}"
-            #             f"{Fore.WHITE+Style.BRIGHT} {score}m {Style.RESET_ALL}"
-            #         )
-
-            # else:
-            #     self.log(
-            #         f"{Fore.CYAN+Style.BRIGHT}Games   :{Style.RESET_ALL}"
-            #         f"{Fore.YELLOW+Style.BRIGHT} No Avaialble Trials {Style.RESET_ALL}"
-            #     )
-
-            
             tasks = await self.task_lists(address, proxy)
             if tasks:
                 self.log(f"{Fore.CYAN+Style.BRIGHT}Tasks   :{Style.RESET_ALL}")
